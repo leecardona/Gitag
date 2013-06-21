@@ -42,7 +42,7 @@ keywords in your commit message:
 When the system sees any of these keywords in your commit message it will increment the value for the keyword(s) provided.
 Note. if major keyword is provided the system will increment the major value and reset both minor and bugfix to zero.
 
-===
+
 #Author
 Lee Cardona  
 http://leecardona.com
