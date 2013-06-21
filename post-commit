@@ -1,0 +1,84 @@
+#!/bin/bash
+# To enable this hook, place it under your ./git/hook directory and name it "post-commit"
+
+# Theory of operation:
+# This shell script works with the required `tags.config` file that is located under the
+# ./git/tags-config directory by default.
+
+# On every commit this script runs and checks for the tags.config file. If no tags.config
+# is found it exits with an error code 1.  If it does find a config file it proceeds to
+# load the file settings for major, minor, bugfix and build values.
+
+# Once loaded it checks to ensure it's interation count is not 0 to ensure an endless 
+# loop is not created.
+
+# If this is the first interation for this commit it then sets the user name for this 
+# commit and then check for the key words 'bugfix', 'minor', or 'major' in the commit
+# message. If it matches on a keyword it increments the value for that keyword. If it 
+# matches on 'major' then it also will reset the 'minor' and 'bugfix' values to 0.
+
+# Once the match check is complete it saves the new values back to the config file and
+# then updates the current commit with an updated commit message that includes a prefix
+# with the version and release type. 
+
+# If the commit doesn't match on any keyword it assumes its a normal 'build' interation 
+# and simply labels the commit message with the updated version number and the name of 
+# the user performing the commit. In all cases this information is only prefixed to the
+# provided commit message which is maintain as entered.
+
+
+COMMIT_MSG=`git log | sed -n 5p;`
+PROJ_CONFIG=".git/tags-config/tags.config"
+if [ -f $PROJ_CONFIG ]
+  then
+    while read propline ; do
+      # ignore comment lines
+      echo "$propline" | grep "^#" >/dev/null 2>&1 && continue
+      # if not empty, set the property using declare
+      [ ! -z "$propline" ] && declare $propline
+    done < $PROJ_CONFIG
+    sleep 1s
+    if [ $INT_COUNT == 0 ]
+      then
+        COMMIT_TYPE="[ $USER ]"
+        let BUILD=BUILD+1
+        if git log | sed -n 5p | grep -i bugfix
+          then
+            COMMIT_TYPE="[ BUGFIX ]" 
+            let BUGFIX=BUGFIX+1
+        fi
+        if git log | sed -n 5p | grep -i minor
+          then
+            COMMIT_TYPE="[ MINOR RELEASE ]"
+            let MINOR=MINOR+1          
+        fi
+        if git log | sed -n 5p | grep -i major
+          then
+            COMMIT_TYPE="[ MAJOR RELEASE ]"
+            let MAJOR=MAJOR+1
+            let MINOR=0
+            let BUGFIX=0
+        fi
+        echo "#version info" > $PROJ_CONFIG
+        echo "MAJOR=$MAJOR" >> $PROJ_CONFIG
+        echo "MINOR=$MINOR" >> $PROJ_CONFIG
+        echo "BUGFIX=$BUGFIX" >> $PROJ_CONFIG
+        echo "BUILD=$BUILD" >> $PROJ_CONFIG
+        echo "INT_COUNT=1" >> $PROJ_CONFIG
+        VERSION="v$MAJOR.$MINOR.$BUGFIX.$BUILD"
+        git commit --amend -m "$VERSION $COMMIT_TYPE$COMMIT_MSG"
+        git tag $VERSION
+        git push --tag
+        git push upstream --tag
+      else
+        echo "#version info" > $PROJ_CONFIG
+        echo "MAJOR=$MAJOR" >> $PROJ_CONFIG
+        echo "MINOR=$MINOR" >> $PROJ_CONFIG
+        echo "BUGFIX=$BUGFIX" >> $PROJ_CONFIG
+        echo "BUILD=$BUILD" >> $PROJ_CONFIG
+        echo "INT_COUNT=0" >> $PROJ_CONFIG
+    fi
+  else
+    exit 1
+fi
+exit 0
