@@ -43,11 +43,11 @@ When the system sees any of these keywords in your commit message it will increm
 Note. if major keyword is provided the system will increment the major value and reset both minor and bugfix to zero.
 
 
-#Author
+# Author
 Lee Cardona  
 http://leecardona.com
 
-#Copyright and license
+# Copyright and license
 Copyright 2013
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this work except in compliance with the License. You may obtain a copy of the License in the LICENSE file, or at:
